@@ -1,14 +1,17 @@
-name: Build and Deploy PWA
+name: PWA Build & Deploy
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/PWA
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -23,3 +26,10 @@ jobs:
 
       - name: Build PWA
         run: npm run build
+
+      - name: Deploy to Firebase Hosting (example)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          channelId: live
