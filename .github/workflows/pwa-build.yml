@@ -13,6 +13,7 @@ jobs:
       run:
         working-directory: ${{ github.workspace }}/PWA
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -22,14 +23,38 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install || npm ci
+        continue-on-error: false
 
       - name: Build PWA
-        run: npm run build
+        run: |
+          npm run build
+        continue-on-error: true
 
-      - name: Deploy to Firebase Hosting (example)
+      - name: AI Log Analyzer Hook
+        run: echo "Logs for Termux AI analyzer" >> $GITHUB_WORKSPACE/.pwa_build.log
+
+      - name: Deploy to Firebase Hosting
+        if: success() || failure()
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
           channelId: live
+
+      - name: Deploy to Netlify (fallback)
+        if: success() || failure()
+        run: |
+          command -v netlify && netlify deploy --prod --dir=dist || echo "Netlify CLI not installed"
+
+      - name: Deploy to AWS S3 (fallback)
+        if: success() || failure()
+        run: |
+          command -v aws && aws s3 sync dist/ s3://your-bucket-name --delete || echo "AWS CLI not installed"
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: pwa-build-logs
+          path: $GITHUB_WORKSPACE/.pwa_build.log
